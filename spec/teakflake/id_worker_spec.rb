@@ -53,5 +53,32 @@ RSpec.describe Teakflake::IdWorker do
         expect(more_ids.length).to eq(Teakflake::Id::MAX_SEQUENCE / 2)
       end
     end
+
+    context 'when out of ids for the sequence' do
+      before do
+        id_worker.id(Teakflake::Id::MAX_SEQUENCE).length
+        allow(clock).to receive(:millis).and_return(Teakflake::Id::EPOCH + 100, Teakflake::Id::EPOCH + 100, Teakflake::Id::EPOCH + 101)
+      end
+
+      it 'waits for the next millisecond before generating ids' do
+        id = Teakflake::Id.new(id_worker.id.first)
+        expect(clock).to have_received(:millis).exactly(4).times
+      end
+
+      it 'generates an id in the next millisecond' do
+        id = Teakflake::Id.new(id_worker.id.first)
+        expect(id).to have_attributes(timestamp: Teakflake::Id::EPOCH + 101)
+      end
+
+      context 'when time goes backwards' do
+        before do
+          allow(clock).to receive(:millis).and_return(Teakflake::Id::EPOCH + 100, Teakflake::Id::EPOCH + 100, Teakflake::Id::EPOCH + 99)
+        end
+
+        it 'raises a BackwardsTimeError' do
+          expect { id_worker.id }.to raise_error(Teakflake::IdWorker::BackwardsTimeError)
+        end
+      end
+    end
   end
 end

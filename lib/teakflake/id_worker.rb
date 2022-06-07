@@ -27,7 +27,7 @@ module Teakflake
       @sequence = 0 if time > @last_time
 
       if Id::MAX_SEQUENCE == @sequence
-        til_next_millis
+        time = til_next_millis
         @sequence = 0
       end
 
@@ -39,7 +39,7 @@ module Teakflake
           requested_count
         end
 
-      next_sequence = (@sequence + requested_count) & Id::SEQUENCE_MASK
+      next_sequence = @sequence + requested_count
 
       @last_time = time
       timestamp_part = time - Id::EPOCH
@@ -61,7 +61,7 @@ module Teakflake
         if time < @last_time
           raise BackwardsTimeError, "Clocked moved backwards. Refusing to generate id for #{@last_time - time} milliseconds"
         elsif time > @last_time
-          break
+          break time
         end
       end
     end
