@@ -8,8 +8,8 @@ module Teakflake
     class BackwardsTimeError < RuntimeError
     end
 
-    def initialize(worker_id_assigner, clock)
-      @clock = clock
+    def initialize(worker_id_assigner)
+      @clock = worker_id_assigner.clock
       @sequence = 0
       @worker_id_assigner = worker_id_assigner
       @datacenter_id = worker_id_assigner.datacenter_id

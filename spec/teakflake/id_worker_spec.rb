@@ -5,7 +5,7 @@ require 'teakflake/clocks/process'
 require 'teakflake/id'
 
 RSpec.describe Teakflake::IdWorker do
-  StubWorkerId = Struct.new(:datacenter_id, :worker_id) do
+  StubWorkerId = Struct.new(:datacenter_id, :worker_id, :clock) do
     def assert(time)
       worker_id
     end
@@ -13,14 +13,14 @@ RSpec.describe Teakflake::IdWorker do
 
   let(:datacenter_id) { rand(Teakflake::Id::MAX_DATACENTER_ID) }
   let(:worker_id) { rand (Teakflake::Id::MAX_WORKER_ID) }
-  let(:worker_id_assigner) { StubWorkerId.new(datacenter_id, worker_id) }
+  let(:worker_id_assigner) { StubWorkerId.new(datacenter_id, worker_id, clock) }
   let(:clock) { instance_double(Teakflake::ProcessClock) }
 
   before do
     allow(clock).to receive(:millis).and_return(Teakflake::Id::EPOCH + 100)
   end
 
-  subject(:id_worker) { described_class.new(worker_id_assigner, clock) }
+  subject(:id_worker) { described_class.new(worker_id_assigner) }
 
   describe '#id' do
     it 'creates an id with the appropriate datacenter id, worker id, and timestamp' do
