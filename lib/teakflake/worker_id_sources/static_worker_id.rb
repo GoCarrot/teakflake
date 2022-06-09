@@ -48,9 +48,44 @@ module Teakflake
     end
 
     def sanity_check_peers
+      timestamps = peers.each_with_object([]) do |(worker_id, uri), timestamps|
+        next if uri == @addr
+        uri = URI(uri)
+        uri.path = '/id'
+
+        id = Teakflake::Id.new(get_id(uri))
+
+        if id.worker_id != worker_id
+          logger.error(:worker_id_insanity, expected: worker_id, got: id.worker_id, peer: uri)
+          raise 'worker id insanity'
+        end
+
+        if id.datacenter_id != @datacenter_id
+          logger.error(:datacenter_id_insanity, expected: @datacenter_id, got: id.datacenter_id, peer: uri)
+          raise 'datacenter id insanity'
+        end
+        timestamps << id.timestamp
+      end
+
+      if !timestamps.empty?
+        avg = timestamps.inject(:+) / timestamps.length.to_f
+        our_time = @clock.millis
+        if (our_time - avg).abs > 10_000
+          logger.error(:timestamp_insanity, avg: avg, our_time: our_time)
+          raise 'timestamp insanity'
+        end
+      end
     end
 
   private
+
+    def get_id(uri)
+      request = Net::HTTP::Post.new(uri.request_uri, { 'Accept' => 'application/json' })
+      response = Net::HTTP.start(uri.host, uri.port) do |http|
+        http.request(request)
+      end
+      JSON.parse(response.body).dig('response', 'ids', 0)
+    end
 
     def peers
       begin

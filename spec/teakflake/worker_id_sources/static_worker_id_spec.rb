@@ -9,7 +9,7 @@ require 'zk'
 RSpec.describe Teakflake::StaticWorkerId do
   let(:datacenter_id) { rand(Teakflake::Id::MAX_DATACENTER_ID) }
   let(:worker_id) { rand(Teakflake::Id::MAX_WORKER_ID) }
-  let(:addr) { 'localhost:80' }
+  let(:addr) { 'http://localhost:80' }
   let(:zookeeper) { instance_double(ZK::Client::Threaded) }
   let(:clock) { instance_double(Teakflake::ProcessClock) }
 
@@ -113,6 +113,160 @@ RSpec.describe Teakflake::StaticWorkerId do
 
       it 'returns the worker id' do
         expect(id_assigner.assert(nil)).to eq worker_id
+      end
+    end
+  end
+
+  describe '#sanity_check_peers' do
+    context 'with no peers' do
+      before do
+        allow(zookeeper).to receive(:get).with('/teakflake-servers')
+        allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([])
+      end
+
+      it 'passes' do
+        expect { id_assigner.sanity_check_peers }.not_to raise_error
+      end
+    end
+
+    context 'with no worker id node' do
+      before do
+        allow(zookeeper).to receive(:get).with('/teakflake-servers').and_raise(ZK::Exceptions::NoNode)
+        allow(zookeeper).to receive(:create)
+        allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([])
+      end
+
+      it 'passes' do
+        expect { id_assigner.sanity_check_peers }.not_to raise_error
+      end
+
+      it 'creates the node' do
+        id_assigner.sanity_check_peers
+        expect(zookeeper).to have_received(:create).with('/teakflake-servers', '', mode: :persistent)
+      end
+
+      it 'logs that it created the node' do
+        id_assigner.sanity_check_peers
+        expect(@log_messages).to include(
+          contain_exactly(:info, :missing_worker_id_path, hash_including(path: '/teakflake-servers'))
+        )
+      end
+    end
+
+    context 'with sane peers' do
+      let(:worker_id) { rand(Teakflake::Id::MAX_WORKER_ID - 2) + 2 }
+      let(:peer0) { 'http://peer0:80' }
+      let(:peer1) { 'http://peer1:80' }
+      let(:id0) { Teakflake::Id.from_parts(50_000, datacenter_id, worker_id - 2, 0).id }
+      let(:id1) { Teakflake::Id.from_parts(49_000, datacenter_id, worker_id - 1, 0).id }
+
+      before do
+        allow(zookeeper).to receive(:get).with('/teakflake-servers')
+        allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([(worker_id - 2).to_s, (worker_id - 1).to_s])
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return(peer0)
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return(peer1)
+        stub_request(:post, "#{peer0}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id0] } }))
+        stub_request(:post, "#{peer1}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id1] } }))
+        allow(clock).to receive(:millis).and_return(52_000 + Teakflake::Id::EPOCH)
+      end
+
+      it 'passes' do
+        expect { id_assigner.sanity_check_peers }.not_to raise_error
+      end
+
+      it 'checks with peers' do
+        id_assigner.sanity_check_peers
+        expect(WebMock).to have_requested(:post, "#{peer0}/id")
+        expect(WebMock).to have_requested(:post, "#{peer1}/id")
+      end
+    end
+
+    context 'with worker id insanity' do
+      let(:worker_id) { rand(Teakflake::Id::MAX_WORKER_ID - 2) + 2 }
+      let(:peer0) { 'http://peer0:80' }
+      let(:peer1) { 'http://peer1:80' }
+      let(:id0) { Teakflake::Id.from_parts(50_000, datacenter_id, worker_id - 2, 0).id }
+      let(:id1) { Teakflake::Id.from_parts(49_000, datacenter_id, worker_id - 1, 0).id }
+
+      before do
+        allow(zookeeper).to receive(:get).with('/teakflake-servers')
+        allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([(worker_id - 2).to_s, (worker_id - 1).to_s])
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return(peer1)
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return(peer0)
+        stub_request(:post, "#{peer0}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id0] } }))
+        stub_request(:post, "#{peer1}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id1] } }))
+        allow(clock).to receive(:millis).and_return(52_000 + Teakflake::Id::EPOCH)
+      end
+
+      it 'raises an error' do
+        expect { id_assigner.sanity_check_peers }.to raise_error('worker id insanity')
+      end
+
+      it 'logs an error' do
+        id_assigner.sanity_check_peers rescue nil
+        expect(@log_messages).to include(
+          contain_exactly(:error, :worker_id_insanity, hash_including(expected: worker_id - 2, got: worker_id - 1))
+        )
+      end
+    end
+
+    context 'with datacenter id instanity' do
+      let(:worker_id) { rand(Teakflake::Id::MAX_WORKER_ID - 2) + 2 }
+      let(:datacenter_id) { rand(Teakflake::Id::MAX_DATACENTER_ID - 2) + 2 }
+      let(:peer0) { 'http://peer0:80' }
+      let(:peer1) { 'http://peer1:80' }
+      let(:id0) { Teakflake::Id.from_parts(50_000, datacenter_id - 1, worker_id - 2, 0).id }
+      let(:id1) { Teakflake::Id.from_parts(49_000, datacenter_id, worker_id - 1, 0).id }
+
+      before do
+        allow(zookeeper).to receive(:get).with('/teakflake-servers')
+        allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([(worker_id - 2).to_s, (worker_id - 1).to_s])
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return(peer0)
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return(peer1)
+        stub_request(:post, "#{peer0}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id0] } }))
+        stub_request(:post, "#{peer1}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id1] } }))
+        allow(clock).to receive(:millis).and_return(52_000 + Teakflake::Id::EPOCH)
+      end
+
+      it 'raises an error' do
+        expect { id_assigner.sanity_check_peers }.to raise_error('datacenter id insanity')
+      end
+
+      it 'logs an error' do
+        id_assigner.sanity_check_peers rescue nil
+        expect(@log_messages).to include(
+          contain_exactly(:error, :datacenter_id_insanity, hash_including(expected: datacenter_id, got: datacenter_id - 1))
+        )
+      end
+    end
+
+    context 'with timestamp insanity' do
+      let(:worker_id) { rand(Teakflake::Id::MAX_WORKER_ID - 2) + 2 }
+      let(:datacenter_id) { rand(Teakflake::Id::MAX_DATACENTER_ID - 2) + 2 }
+      let(:peer0) { 'http://peer0:80' }
+      let(:peer1) { 'http://peer1:80' }
+      let(:id0) { Teakflake::Id.from_parts(66_000, datacenter_id, worker_id - 2, 0).id }
+      let(:id1) { Teakflake::Id.from_parts(66_000, datacenter_id, worker_id - 1, 0).id }
+
+      before do
+        allow(zookeeper).to receive(:get).with('/teakflake-servers')
+        allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([(worker_id - 2).to_s, (worker_id - 1).to_s])
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return(peer0)
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return(peer1)
+        stub_request(:post, "#{peer0}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id0] } }))
+        stub_request(:post, "#{peer1}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id1] } }))
+        allow(clock).to receive(:millis).and_return(52_000 + Teakflake::Id::EPOCH)
+      end
+
+      it 'raises an error' do
+        expect { id_assigner.sanity_check_peers }.to raise_error('timestamp insanity')
+      end
+
+      it 'logs an error' do
+        id_assigner.sanity_check_peers rescue nil
+        expect(@log_messages).to include(
+          contain_exactly(:error, :timestamp_insanity, hash_including(our_time: 52_000 + Teakflake::Id::EPOCH, avg: 66_000.0 + Teakflake::Id::EPOCH))
+        )
       end
     end
   end

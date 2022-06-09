@@ -7,6 +7,7 @@ SimpleCov.start do
 end
 
 require "teakflake"
+require 'webmock/rspec'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
@@ -39,4 +40,6 @@ RSpec.configure do |config|
   config.after do
     LogsForMyFamily.configuration.backends = []
   end
+
+  WebMock.disable_net_connect!
 end
