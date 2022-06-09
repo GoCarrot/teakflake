@@ -17,7 +17,26 @@ RSpec.configure do |config|
 
   config.order = :random
 
+  # Seed global randomization in this process using the `--seed` CLI option.
+  # Setting this allows you to use `--seed` to deterministically reproduce
+  # test failures related to randomization by passing the same `--seed` value
+  # as the one that triggered the failure.
+  Kernel.srand config.seed
+
   config.expect_with :rspec do |c|
     c.syntax = :expect
+  end
+
+  config.before do
+    @log_messages = []
+    LogsForMyFamily.configuration.backends = [
+      proc do |level_name, event_type, merged_data|
+        @log_messages << [level_name, event_type, merged_data]
+      end
+    ]
+  end
+
+  config.after do
+    LogsForMyFamily.configuration.backends = []
   end
 end

@@ -28,6 +28,8 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Uncomment to register a new dependency of your gem
+  spec.add_dependency 'logsformyfamily', '~> 0.3.0'
+  spec.add_dependency 'zk', '~> 1.10'
   # spec.add_dependency "example-gem", "~> 1.0"
 
   # For more information and examples about making a new gem, checkout our

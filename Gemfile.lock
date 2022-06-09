@@ -2,14 +2,24 @@ PATH
   remote: .
   specs:
     teakflake (0.1.0)
+      logsformyfamily (~> 0.3.0)
+      zk (~> 1.10)
 
 GEM
   remote: https://rubygems.org/
   specs:
+    addressable (2.8.0)
+      public_suffix (>= 2.0.2, < 5.0)
     benchmark-ips (2.10.0)
+    crack (0.4.5)
+      rexml
     diff-lcs (1.5.0)
     docile (1.4.0)
+    hashdiff (1.0.1)
+    logsformyfamily (0.3.0)
+    public_suffix (4.0.7)
     rake (13.0.6)
+    rexml (3.2.5)
     rspec (3.11.0)
       rspec-core (~> 3.11.0)
       rspec-expectations (~> 3.11.0)
@@ -30,6 +40,13 @@ GEM
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
     stackprof (0.2.19)
+    webmock (3.14.0)
+      addressable (>= 2.8.0)
+      crack (>= 0.3.2)
+      hashdiff (>= 0.4.0, < 2.0.0)
+    zk (1.10.0)
+      zookeeper (~> 1.5.0)
+    zookeeper (1.5.2)
 
 PLATFORMS
   ruby
@@ -41,6 +58,7 @@ DEPENDENCIES
   simplecov
   stackprof
   teakflake!
+  webmock
 
 BUNDLED WITH
    2.1.4

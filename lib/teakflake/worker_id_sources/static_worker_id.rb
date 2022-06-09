@@ -1,25 +1,60 @@
 # frozen_string_literal: true
 
+require 'logsformyfamily'
+
 module Teakflake
   class StaticWorkerId
-    attr_reader :datacenter_id
+    include LogsForMyFamily::LocalLogger
 
-    def initialize(zookeper, datacenter_id, worker_id, worker_id_zk_path: '/teakflake-servers')
-      @zookeper = zookeper
+    attr_reader :datacenter_id, :clock
+
+    def initialize(zookeeper, datacenter_id, worker_id, addr, clock, worker_id_zk_path: '/teakflake-servers')
+      @zookeeper = zookeeper
       @datacenter_id = datacenter_id
       @worker_id = worker_id
       @worker_id_zk_path = worker_id_zk_path
+      @addr = addr
+      @clock = clock
+      @id_registered = false
     end
 
-    def assert(time)
+    def register_worker_id
+      logger.info(:claiming_worker_id, id: @worker_id)
+      @zookeeper.mkdir_p(@worker_id_zk_path)
+      tries = 0
+      begin
+        @zookeeper.create(
+          "#{@worker_id_zk_path}/#{@worker_id}", @addr,
+          mode: :ephemeral
+        )
+      rescue ZK::Exceptions::NodeExists
+        if tries < 2
+          logger.notice(:fail_attempt_claim_worker_id, id: @worker_id, tries: tries)
+          tries += 1
+          ::Kernel.sleep 1
+          retry
+        else
+          logger.error(:fail_claim_worker_id, id: @worker_id)
+          raise
+        end
+      end
+      @id_registered = true
+      logger.info(:claimed_worker_id, id: @worker_id)
+    end
+
+    def assert(_time)
+      raise 'worker_id not registered' unless @id_registered
       @worker_id
+    end
+
+    def sanity_check_peers
     end
 
   private
 
     def peers
       begin
-        @zookeper.get(@worker_id_zk_path)
+        @zookeeper.get(@worker_id_zk_path)
       rescue ZK::Exceptions::NoNode
         logger.info(:missing_worker_id_path, path: @worker_id_zk_path)
         @zookeeper.create(@worker_id_zk_path, '', mode: :persistent)
@@ -34,31 +69,6 @@ module Teakflake
       logger.info(:found_peers, peers: peers)
 
       peers
-    end
-
-    def register_worker_id
-      @zookeper.mkdir_p(@worker_id_zk_path)
-      tries = 0
-      begin
-        @zookeeper.create(
-          "#{@worker_id_zk_path}/#{@worker_id}", "#{`hostname -f`}:#{port}",
-          mode: :ephemeral
-        )
-      rescue ZK::Exceptions::NodeExists
-        if tries < 2
-          logger.notice(:fail_attempt_claim_worker_id, id: @worker_id, tries: tries)
-          tries += 1
-          sleep 1
-          retry
-        else
-          logger.error(:fail_claim_worker_id, id: @worker_id)
-          raise
-        end
-      end
-      logger.info(:claimed_worker_id, id: @worker_id)
-    end
-
-    def sanity_check_peers
     end
   end
 end

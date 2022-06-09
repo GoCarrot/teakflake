@@ -14,3 +14,5 @@ gem 'benchmark-ips'
 gem 'stackprof'
 
 gem 'simplecov'
+
+gem 'webmock'
