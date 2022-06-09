@@ -17,9 +17,19 @@ module Teakflake
     TIMESTAMP_SHIFT = DATACENTER_ID_SHIFT + DATACENTER_ID_BITS
     SEQUENCE_MASK = -1 ^ (-1 << SEQUENCE_BITS)
 
-    attr_reader :timestamp, :datacenter_id, :worker_id, :sequence
+    attr_reader :timestamp, :datacenter_id, :worker_id, :sequence, :id
+
+    def self.from_parts(timestamp, datacenter_id, worker_id, sequence)
+      new(
+        timestamp << TIMESTAMP_SHIFT |
+        datacenter_id << DATACENTER_ID_SHIFT |
+        worker_id << WORKER_ID_SHIFT |
+        sequence
+      )
+    end
 
     def initialize(id)
+      @id = id
       @timestamp = (id >> TIMESTAMP_SHIFT) + EPOCH
       @datacenter_id = id >> DATACENTER_ID_SHIFT & (-1 ^ (-1 << DATACENTER_ID_BITS))
       @worker_id = id >> WORKER_ID_SHIFT & (-1 ^ (-1 << WORKER_ID_BITS))
