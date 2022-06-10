@@ -1,0 +1,4 @@
+zookeeper_servers:
+  - localhost:2181
+server_port: 80
+datacenter_id: 2

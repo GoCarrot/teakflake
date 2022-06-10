@@ -16,3 +16,5 @@ gem 'stackprof'
 gem 'simplecov'
 
 gem 'webmock'
+
+gem 'rack-test'
