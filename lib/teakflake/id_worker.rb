@@ -17,6 +17,10 @@ module Teakflake
     end
 
     def id(requested_count = 1)
+      if requested_count < 1
+        raise 'Must request at least one id'
+      end
+
       time = @clock.millis
       if time < @last_time
         raise BackwardsTimeError, "Clocked moved backwards. Refusing to generate id for #{@last_time - time} milliseconds"
