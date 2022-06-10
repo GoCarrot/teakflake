@@ -1,8 +1,9 @@
 # Teakflake
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/teakflake`. To experiment with that code, run `bin/console` for an interactive prompt.
+Teakflake is a port of Twitter's Snowflake to Ruby. Most functionality is identical, except
 
-TODO: Delete this and the text above, and describe your gem
+- Teakflake uses an HTTP API through a small Rack app instead of Thrift
+- Teakflake supports requesting multiple ids in a single call
 
 ## Installation
 
@@ -32,4 +33,4 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/teakflake.
+Bug reports and pull requests are welcome on GitHub at https://github.com/GoCarrot/teakflake.
