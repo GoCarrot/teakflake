@@ -3,6 +3,7 @@ PATH
   specs:
     teakflake (0.1.0)
       logsformyfamily (~> 0.3.0)
+      rack (~> 2.2, >= 2.2.3.1)
       zk (~> 1.10)
 
 GEM
