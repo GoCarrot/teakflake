@@ -177,8 +177,8 @@ RSpec.describe Teakflake::StaticWorkerId do
       before do
         allow(zookeeper).to receive(:get).with('/teakflake-servers')
         allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([(worker_id - 2).to_s, (worker_id - 1).to_s])
-        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return(peer0)
-        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return(peer1)
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return([peer0, instance_double(Zookeeper::Stat)])
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return([peer1, instance_double(Zookeeper::Stat)])
         stub_request(:post, "#{peer0}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id0] } }))
         stub_request(:post, "#{peer1}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id1] } }))
         allow(clock).to receive(:millis).and_return(52_000 + Teakflake::Id::EPOCH)
@@ -205,8 +205,8 @@ RSpec.describe Teakflake::StaticWorkerId do
       before do
         allow(zookeeper).to receive(:get).with('/teakflake-servers')
         allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([(worker_id - 2).to_s, (worker_id - 1).to_s])
-        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return(peer1)
-        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return(peer0)
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return([peer1, instance_double(Zookeeper::Stat)])
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return([peer0, instance_double(Zookeeper::Stat)])
         stub_request(:post, "#{peer0}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id0] } }))
         stub_request(:post, "#{peer1}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id1] } }))
         allow(clock).to receive(:millis).and_return(52_000 + Teakflake::Id::EPOCH)
@@ -235,8 +235,8 @@ RSpec.describe Teakflake::StaticWorkerId do
       before do
         allow(zookeeper).to receive(:get).with('/teakflake-servers')
         allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([(worker_id - 2).to_s, (worker_id - 1).to_s])
-        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return(peer0)
-        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return(peer1)
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return([peer0, instance_double(Zookeeper::Stat)])
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return([peer1, instance_double(Zookeeper::Stat)])
         stub_request(:post, "#{peer0}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id0] } }))
         stub_request(:post, "#{peer1}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id1] } }))
         allow(clock).to receive(:millis).and_return(52_000 + Teakflake::Id::EPOCH)
@@ -265,8 +265,8 @@ RSpec.describe Teakflake::StaticWorkerId do
       before do
         allow(zookeeper).to receive(:get).with('/teakflake-servers')
         allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([(worker_id - 2).to_s, (worker_id - 1).to_s])
-        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return(peer0)
-        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return(peer1)
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 2}").and_return([peer0, instance_double(Zookeeper::Stat)])
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{worker_id - 1}").and_return([peer1, instance_double(Zookeeper::Stat)])
         stub_request(:post, "#{peer0}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id0] } }))
         stub_request(:post, "#{peer1}/id").and_return(body: JSON.generate({ metadata: {}, response: { ids: [id1] } }))
         allow(clock).to receive(:millis).and_return(52_000 + Teakflake::Id::EPOCH)

@@ -112,7 +112,7 @@ module Teakflake
       children = @zookeeper.children(@worker_id_zk_path)
       peers = children.each_with_object({}) do |child, hash|
         info = @zookeeper.get("#{@worker_id_zk_path}/#{child}")
-        hash[child.to_i] = info
+        hash[child.to_i] = info[0]
       end
 
       logger.info(:found_peers, peers: peers)
