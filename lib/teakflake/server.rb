@@ -14,9 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'json'
+require 'zk'
 require 'yaml'
 require 'securerandom'
-require 'rack/request'
 require_relative 'clocks/process'
 require_relative 'worker_id_sources/static_worker_id'
 require_relative 'id_worker'
