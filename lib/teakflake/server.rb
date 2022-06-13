@@ -37,6 +37,8 @@ module Teakflake
   end
 
   class Server
+    include LogsForMyFamily::LocalLogger
+
     def config
       @config ||= {}.freeze
     end
@@ -146,6 +148,7 @@ module Teakflake
         }, response: { ids: ids }})
       ]]
     rescue StandardError => exc
+      logger.error(:server_error, message: exc.message)
       [500, { 'Content-Type' => 'application/json' }, [
         JSON.generate({metadata: {
           requestId: request_id,
