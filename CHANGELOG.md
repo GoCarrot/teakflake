@@ -1,3 +1,9 @@
+## 0.1.3
+
+ENHANCEMENTS:
+
+* Log on server error
+
 ## 0.1.2
 
 BUG FIXES:
