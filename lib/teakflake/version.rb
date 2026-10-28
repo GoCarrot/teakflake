@@ -15,5 +15,5 @@
 # limitations under the License.
 
 module Teakflake
-  VERSION = "0.1.3"
+  VERSION = "0.1.4"
 end

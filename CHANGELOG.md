@@ -1,3 +1,9 @@
+## 0.1.4
+
+BUG FIXES:
+
+* Use File.exist? instead of File.exists?, which was removed in Ruby 3.2
+
 ## 0.1.3
 
 ENHANCEMENTS:
