@@ -45,7 +45,7 @@ module Teakflake
 
     def load_application_config!
       path = File.join(ENV.fetch('CREDENTIALS_DIRECTORY', 'config'), 'application.yml')
-      if File.exists?(path)
+      if File.exist?(path)
         yaml = File.read(path)
         parsed_config = YAML.safe_load(yaml, symbolize_names: true).freeze
         if(parsed_config)
