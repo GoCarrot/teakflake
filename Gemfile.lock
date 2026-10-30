@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    teakflake (0.1.4)
+    teakflake (0.1.5)
       benchmark
       logger
       logsformyfamily (~> 0.3.0)
