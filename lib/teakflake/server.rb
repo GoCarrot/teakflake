@@ -68,7 +68,7 @@ module Teakflake
         ZK::Client::Threaded.new(config[:zookeeper_servers].join(',')),
         config[:datacenter_id],
         ENV['WORKER_ID'].to_i,
-        "http://#{Addrinfo.getaddrinfo(@hostname, nil, nil, :STREAM,nil, Socket::AI_CANONNAME).first.canonname}:#{config[:server_port]}",
+        advertise_addr,
         ProcessClock.new
       )
       id_assigner.sanity_check_peers
@@ -89,6 +89,16 @@ module Teakflake
     end
 
   private
+
+    # TEAKFLAKE_ADVERTISE_ADDR is a bare host or IP. Without it we advertise the hostname's canonname, which
+    # only resolves for peers if the host's resolver/hosts file says so.
+    def advertise_addr
+      host = ENV['TEAKFLAKE_ADVERTISE_ADDR'].to_s.strip
+      if host.empty?
+        host = Addrinfo.getaddrinfo(@hostname, nil, nil, :STREAM, nil, Socket::AI_CANONNAME).first.canonname
+      end
+      "http://#{host}:#{config[:server_port]}"
+    end
 
     POST_BODY = 'rack.input'.freeze
     FORM_INPUT = 'rack.request.form_input'.freeze
