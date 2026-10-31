@@ -55,6 +55,7 @@ module Teakflake
       end
       @id_registered = true
       logger.info(:claimed_worker_id, id: @worker_id)
+      log_registration
     end
 
     def assert(_time)
@@ -102,7 +103,20 @@ module Teakflake
       JSON.parse(response.body).dig('response', 'ids', 0)
     end
 
+    # One line with everything needed to see what each node advertised, without reading ZK by hand.
+    def log_registration
+      logger.info(:registered_worker, id: @worker_id, addr: @addr, peers: read_peers)
+    rescue StandardError => e
+      logger.warning(:registered_worker_peers_unreadable, id: @worker_id, addr: @addr, message: e.message)
+    end
+
     def peers
+      found = read_peers
+      logger.info(:found_peers, peers: found)
+      found
+    end
+
+    def read_peers
       begin
         @zookeeper.get(@worker_id_zk_path)
       rescue ZK::Exceptions::NoNode
@@ -115,8 +129,6 @@ module Teakflake
         info = @zookeeper.get("#{@worker_id_zk_path}/#{child}")
         hash[child.to_i] = info[0]
       end
-
-      logger.info(:found_peers, peers: peers)
 
       peers
     end

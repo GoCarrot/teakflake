@@ -28,5 +28,8 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'logsformyfamily', '~> 0.3.0'
   spec.add_dependency 'zk', '~> 1.10'
-  spec.add_dependency 'rack', '~> 2.2', '>= 2.2.3.1'
+  spec.add_dependency 'rack', '~> 2.2', '>= 2.2.24'
+  # zookeeper 1.5.5 requires these without declaring them, and Ruby 4.0 dropped both from the default gems.
+  spec.add_dependency 'logger'
+  spec.add_dependency 'benchmark'
 end

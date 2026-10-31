@@ -40,6 +40,41 @@ RSpec.describe Teakflake::Server do
     FileUtils.remove_entry ENV['LOGS_DIRECTORY']
   end
 
+  describe 'the advertised address' do
+    let(:canonname) { Addrinfo.getaddrinfo(Socket.gethostname, nil, nil, :STREAM, nil, Socket::AI_CANONNAME).first.canonname }
+
+    around do |example|
+      original = ENV['TEAKFLAKE_ADVERTISE_ADDR']
+      example.run
+    ensure
+      ENV['TEAKFLAKE_ADVERTISE_ADDR'] = original
+    end
+
+    it 'uses TEAKFLAKE_ADVERTISE_ADDR when set' do
+      ENV['TEAKFLAKE_ADVERTISE_ADDR'] = '10.1.2.3'
+      app
+      expect(zookeeper).to have_received(:create).with(
+        "/teakflake-servers/#{worker_id}", 'http://10.1.2.3:80', mode: :ephemeral
+      )
+    end
+
+    it 'falls back to the canonname when unset' do
+      ENV.delete('TEAKFLAKE_ADVERTISE_ADDR')
+      app
+      expect(zookeeper).to have_received(:create).with(
+        "/teakflake-servers/#{worker_id}", "http://#{canonname}:80", mode: :ephemeral
+      )
+    end
+
+    it 'falls back to the canonname when empty' do
+      ENV['TEAKFLAKE_ADVERTISE_ADDR'] = ' '
+      app
+      expect(zookeeper).to have_received(:create).with(
+        "/teakflake-servers/#{worker_id}", "http://#{canonname}:80", mode: :ephemeral
+      )
+    end
+  end
+
   describe '/id' do
     it 'returns an id' do
       post '/id'

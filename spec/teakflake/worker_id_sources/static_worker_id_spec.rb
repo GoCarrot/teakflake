@@ -30,9 +30,16 @@ RSpec.describe Teakflake::StaticWorkerId do
   subject(:id_assigner) { described_class.new(zookeeper, datacenter_id, worker_id, addr, clock) }
 
   describe '#register_worker_id' do
+    let(:peer_infos) { {} }
+
     before do
       allow(zookeeper).to receive(:mkdir_p).with('/teakflake-servers')
       allow(zookeeper).to receive(:create)
+      allow(zookeeper).to receive(:get).with('/teakflake-servers')
+      allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return(peer_infos.keys.map(&:to_s))
+      peer_infos.each do |id, url|
+        allow(zookeeper).to receive(:get).with("/teakflake-servers/#{id}").and_return([url, nil])
+      end
     end
 
     it 'creates the worker id path' do
@@ -53,6 +60,32 @@ RSpec.describe Teakflake::StaticWorkerId do
         contain_exactly(:info, :claiming_worker_id, hash_including(id: worker_id)),
         contain_exactly(:info, :claimed_worker_id, hash_including(id: worker_id))
       )
+    end
+
+    context 'after claiming the worker id' do
+      let(:peer_infos) { { 3 => 'http://10.0.0.3:9292', worker_id => addr } }
+
+      it 'logs our id, our url, and every peer in one line' do
+        id_assigner.register_worker_id
+        expect(@log_messages).to include(
+          contain_exactly(:info, :registered_worker, hash_including(
+            id: worker_id, addr: addr, peers: { 3 => 'http://10.0.0.3:9292', worker_id => addr }
+          ))
+        )
+      end
+
+      it 'does not fail the boot if the peers cannot be read' do
+        allow(zookeeper).to receive(:children).and_raise(ZK::Exceptions::OperationTimeOut)
+        expect { id_assigner.register_worker_id }.not_to raise_error
+      end
+
+      it 'logs that the peers could not be read' do
+        allow(zookeeper).to receive(:children).and_raise(ZK::Exceptions::OperationTimeOut)
+        id_assigner.register_worker_id
+        expect(@log_messages).to include(
+          contain_exactly(:warning, :registered_worker_peers_unreadable, hash_including(id: worker_id, addr: addr))
+        )
+      end
     end
 
     context 'if the node temporarily exists' do
@@ -122,6 +155,8 @@ RSpec.describe Teakflake::StaticWorkerId do
       before do
         allow(zookeeper).to receive(:mkdir_p).with('/teakflake-servers')
         allow(zookeeper).to receive(:create)
+        allow(zookeeper).to receive(:get).with('/teakflake-servers')
+        allow(zookeeper).to receive(:children).with('/teakflake-servers').and_return([])
         id_assigner.register_worker_id
       end
 
